@@ -1,10 +1,59 @@
 ﻿@page
 @model IndexModel
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Inicio";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="text-center mb-5">
+    <h1 class="display-4 fw-bold" style="color: #2E7D32;">Taller Mecánico ITSUR</h1>
+    <p class="lead">Sistema de Gestión de Servicios y Refacciones</p>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="fw-bold"><i class="fa-solid fa-list"></i> Últimas Órdenes de Servicio</h3>
+    
+    <a asp-page="/NuevaOrden" class="btn btn-verde btn-lg">
+        + Nueva Orden
+    </a>
+</div>
+
+<div class="table-responsive shadow-sm rounded">
+    <table class="table table-hover table-bordered text-center align-middle">
+        <thead class="table-header-verde text-white">
+            <tr>
+                <th>FOLIO</th>
+                <th>FECHA</th>
+                <th>CLIENTE</th>
+                <th>VEHÍCULO</th>
+                <th>ESTADO</th>
+                <th>TOTAL</th>
+                <th>ACCIONES</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="fw-bold">1001</td>
+                <td>17/02/2026</td>
+                <td>Juan Pérez</td>
+                <td>Nissan Versa (GTO-123)</td>
+                <td><span class="badge bg-warning text-dark">En Proceso</span></td>
+                <td class="fw-bold text-success">$2,500.00</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary">Ver Detalles</button>
+                </td>
+            </tr>
+
+            <tr>
+                <td class="fw-bold">1000</td>
+                <td>15/02/2026</td>
+                <td>María Hernández</td>
+                <td>Toyota RAV4</td>
+                <td><span class="badge bg-success">Finalizada</span></td>
+                <td class="fw-bold text-success">$850.00</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary">Ver Detalles</button>
+                </td>
+            </tr>
+             </tbody>
+    </table>
 </div>

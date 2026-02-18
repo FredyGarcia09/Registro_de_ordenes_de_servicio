@@ -20,3 +20,24 @@ html {
 body {
   margin-bottom: 60px;
 }
+
+/* Estilos personalizados */
+.btn-verde {
+    background-color: #2E7D32;
+    color: white;
+    border: none;
+}
+
+.btn-verde:hover {
+    background-color: #1b5e20; 
+    color: white;
+}
+
+h2, h3 {
+    color: #2E7D32; 
+}
+
+.table-header-verde thead {
+    background-color: #4CAF50; 
+    color: white;
+}

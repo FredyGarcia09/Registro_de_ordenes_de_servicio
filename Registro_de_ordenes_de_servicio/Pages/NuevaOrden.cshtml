@@ -1,0 +1,86 @@
+﻿@page
+@model Registro_de_ordenes_de_servicio.Pages.NuevaOrdenModel
+@{
+    ViewData["Title"] = "Registro de Orden";
+}
+
+<div class="container p-4 border rounded shadow-sm bg-light">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold">REGISTRO DE SERVICIO</h2>
+        <div class="text-end text-muted">
+            <h5>FOLIO: <span class="badge bg-secondary">AUTO</span></h5>
+            <h6>FECHA: @DateTime.Now.ToString("dd/MM/yyyy")</h6>
+        </div>
+    </div>
+
+    <hr />
+
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <label class="form-label fw-bold">CLIENTE (RFC / Nombre):</label>
+            <select id="selectCliente" class="form-select">
+                <option selected disabled>-- Seleccione Cliente --</option>
+                <option value="1">Juan Pérez (RFC123)</option>
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label fw-bold">VEHÍCULO (Placas / Auto):</label>
+            <select id="selectVehiculo" class="form-select" disabled>
+                <option selected disabled>-- Seleccione primero un Cliente --</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="card mb-4 border-success">
+        <div class="card-header bg-success text-white">
+            Agregar Servicios
+        </div>
+        <div class="card-body">
+            <div class="row align-items-end">
+                <div class="col-md-8">
+                    <label class="form-label">Servicio Disponible:</label>
+                    <select id="selectServicio" class="form-select">
+                         <option selected disabled>-- Catálogo de Servicios --</option>
+                         <option value="2500">Afinación Mayor - $2,500.00</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-verde w-100" type="button" onclick="agregarServicio()">
+                        + Agregar a la Lista
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <table class="table table-striped table-bordered table-header-verde text-center">
+        <thead>
+            <tr>
+                <th>DESCRIPCIÓN</th> <th>CANTIDAD</th>    <th>PRECIO UNIT.</th> <th>IMPORTE</th>      <th>ACCIÓN</th>
+            </tr>
+        </thead>
+        <tbody id="tablaDetalles">
+            </tbody>
+    </table>
+
+    <div class="row justify-content-end">
+        <div class="col-md-4">
+            <ul class="list-group">
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>Subtotal:</span>
+                    <strong id="lblSubtotal">$0.00</strong>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>IVA (16%):</span>
+                    <strong id="lblIVA">$0.00</strong>
+                </li>
+                <li class="list-group-item d-flex justify-content-between list-group-item-success">
+                    <span class="fw-bold">TOTAL:</span>
+                    <strong class="fw-bold" id="lblTotal">$0.00</strong>
+                </li>
+            </ul>
+            <br />
+            <button class="btn btn-verde w-100 btn-lg">💾 GUARDAR ORDEN</button>
+        </div>
+    </div>
+</div>
