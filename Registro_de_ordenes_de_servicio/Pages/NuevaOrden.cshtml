@@ -18,9 +18,12 @@
     <div class="row mb-3">
         <div class="col-md-6">
             <label class="form-label fw-bold">CLIENTE (RFC / Nombre):</label>
-            <select id="selectCliente" class="form-select">
+            <select id="selectCliente" class="form-select" onchange="cargarVehiculos()">
                 <option selected disabled>-- Seleccione Cliente --</option>
-                <option value="1">Juan Pérez (RFC123)</option>
+                @foreach (var item in Model.ListaClientes)
+                {
+                    <option value="@item.IdCliente">@item.NombreCompleto (@item.Rfc)</option>
+                }
             </select>
         </div>
         <div class="col-md-6">
@@ -40,8 +43,13 @@
                 <div class="col-md-8">
                     <label class="form-label">Servicio Disponible:</label>
                     <select id="selectServicio" class="form-select">
-                         <option selected disabled>-- Catálogo de Servicios --</option>
-                         <option value="2500">Afinación Mayor - $2,500.00</option>
+                        <option selected disabled>-- Catálogo de Servicios --</option>
+                        @foreach (var item in Model.ListaServicios)
+                        {
+                            <option value="@item.CostoBase" data-clave="@item.ClaveServicio">
+                                @item.NombreServicio - $@item.CostoBase
+                            </option>
+                        }
                     </select>
                 </div>
                 <div class="col-md-4">
