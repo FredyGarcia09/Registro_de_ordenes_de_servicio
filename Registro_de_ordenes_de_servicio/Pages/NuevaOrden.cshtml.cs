@@ -53,6 +53,19 @@ namespace Registro_de_ordenes_de_servicio.Pages
                     return new JsonResult(new { exito = false, mensaje = "Estructura de datos inválida o vacía." });
                 }
 
+                // Valida fecha entrega no sea menor a actual
+                if (ordenData.FechaEstimadaEntrega.HasValue)
+                {
+                    // Se utiliza la fecha local del servidor web
+                    DateTime fechaServidor = DateTime.Now.Date;
+                    DateTime fechaRecibida = ordenData.FechaEstimadaEntrega.Value.Date;
+
+                    if (fechaRecibida < fechaServidor)
+                    {
+                        return new JsonResult(new { exito = false, mensaje = "Violación de regla de negocio: La fecha de entrega no puede ser anterior a la fecha actual." });
+                    }
+                }
+
                 // Invoca la capa de acceso a datos
                 int nuevoFolio = _dao.GuardarOrdenTransaccional(ordenData);
 

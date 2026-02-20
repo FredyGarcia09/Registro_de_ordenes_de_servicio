@@ -31,29 +31,113 @@
             </tr>
         </thead>
         <tbody>
-            <tr>
-                <td class="fw-bold">1001</td>
-                <td>17/02/2026</td>
-                <td>Juan Pérez</td>
-                <td>Nissan Versa (GTO-123)</td>
-                <td><span class="badge bg-warning text-dark">En Proceso</span></td>
-                <td class="fw-bold text-success">$2,500.00</td>
-                <td>
-                    <button class="btn btn-sm btn-outline-primary">Ver Detalles</button>
-                </td>
-            </tr>
-
-            <tr>
-                <td class="fw-bold">1000</td>
-                <td>15/02/2026</td>
-                <td>María Hernández</td>
-                <td>Toyota RAV4</td>
-                <td><span class="badge bg-success">Finalizada</span></td>
-                <td class="fw-bold text-success">$850.00</td>
-                <td>
-                    <button class="btn btn-sm btn-outline-primary">Ver Detalles</button>
-                </td>
-            </tr>
-             </tbody>
+            @if (Model.ListaOrdenes != null && Model.ListaOrdenes.Any())
+            {
+                foreach (var orden in Model.ListaOrdenes)
+                {
+                    <tr>
+                        <td class="fw-bold">@orden.Folio.ToString("D4")</td>
+                        <td>@orden.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@orden.NombreCliente</td>
+                        <td>@orden.InfoVehiculo</td>
+                        <td>
+                            @{
+                                // CSS con Bootstrap segun estado de la orden
+                                string badgeClass = orden.Estado switch
+                                {
+                                    "Abierta" => "bg-primary",
+                                    "En Proceso" => "bg-warning text-dark",
+                                    "Finalizada" => "bg-success",
+                                    "Cancelada" => "bg-danger",
+                                    _ => "bg-secondary"
+                                };
+                            }
+                            <span class="badge @badgeClass">@orden.Estado</span>
+                        </td>
+                        <td class="fw-bold text-success">@orden.Total.ToString("C")</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" onclick="abrirModalDetalles(@orden.Folio)">
+                                <i class="fa-solid fa-eye"></i> Ver Detalles
+                            </button>
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="7" class="text-muted p-4">
+                        <em>No hay órdenes de servicio registradas en el sistema.</em>
+                    </td>
+                </tr>
+            }
+        </tbody>
     </table>
 </div>
+
+<div class="modal fade" id="modalDetalles" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="modalLabel">Detalles de la Orden #<span id="lblFolioModal"></span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="list-group" id="listaServiciosModal">
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        /**
+         * Consulta el servidor para obtener los servicios de una orden y despliega la ventana modal.
+         */
+        function abrirModalDetalles(folio) {
+            // Actualiza la etiqueta del folio
+            document.getElementById("lblFolioModal").innerText = folio;
+
+            const contenedorLista = document.getElementById("listaServiciosModal");
+            contenedorLista.innerHTML = '<li class="list-group-item text-center">Cargando...</li>';
+
+            // Ejecuta la petición asíncrona al manejador de Razor Pages
+            fetch(`?handler=Detalles&folio=${folio}`)
+                .then(response => {
+                    if (!response.ok) throw new Error("Fallo en la respuesta del servidor");
+                    return response.json();
+                })
+                .then(data => {
+                    contenedorLista.innerHTML = "";
+
+                    if(data.length === 0){
+                        contenedorLista.innerHTML = '<li class="list-group-item text-center text-muted">Sin servicios registrados.</li>';
+                        return;
+                    }
+
+                    // Itera sobre el arreglo JSON e inyecta los elementos de la lista en el DOM
+                    data.forEach(item => {
+                        const li = document.createElement("li");
+                        li.className = "list-group-item d-flex justify-content-between align-items-center";
+                        li.innerHTML = `
+                            ${item.nombreServicio}
+                            <span class="badge bg-success rounded-pill">$${item.precioCobrado.toFixed(2)}</span>
+                        `;
+                        contenedorLista.appendChild(li);
+                    });
+                })
+                .catch(error => {
+                    console.error("Error al obtener detalles:", error);
+                    contenedorLista.innerHTML = '<li class="list-group-item text-danger">Error de conexión.</li>';
+                });
+
+            // Instancia y despliega el componente modal 
+            const modal = new bootstrap.Modal(document.getElementById('modalDetalles'));
+            modal.show();
+        }
+    </script>
+}

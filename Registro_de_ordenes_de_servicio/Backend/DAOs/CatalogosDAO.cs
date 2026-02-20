@@ -171,14 +171,24 @@ namespace Registro_de_ordenes_de_servicio.Backend.DAOs
                     {
                         //Inserción de la tabla ordenesServicio
                         string queryMaestro = @"
-                            INSERT INTO ordenesServicio (idVehiculo, fechaIngreso, estado, costoTotal) 
-                            VALUES (@idVehiculo, GETDATE(), 'Abierta', @costoTotal);
+                            INSERT INTO ordenesServicio (idVehiculo, fechaIngreso, fechaEstimadaEntrega, estado, costoTotal) 
+                            VALUES (@idVehiculo, GETDATE(), @fechaEstimada, 'Abierta', @costoTotal);
                             SELECT SCOPE_IDENTITY();";
 
                         using (var cmdMaestro = new SqlCommand(queryMaestro, conexion, transaccion))
                         {
                             cmdMaestro.Parameters.AddWithValue("@idVehiculo", orden.IdVehiculo);
                             cmdMaestro.Parameters.AddWithValue("@costoTotal", orden.CostoTotal);
+
+                            // Manejo NULL para fecha estimada
+                            if (orden.FechaEstimadaEntrega.HasValue)
+                            {
+                                cmdMaestro.Parameters.AddWithValue("@fechaEstimada", orden.FechaEstimadaEntrega.Value);
+                            }
+                            else
+                            {
+                                cmdMaestro.Parameters.AddWithValue("@fechaEstimada", DBNull.Value);
+                            }
 
                             folioGenerado = Convert.ToInt32(cmdMaestro.ExecuteScalar());
                         }
@@ -219,6 +229,96 @@ namespace Registro_de_ordenes_de_servicio.Backend.DAOs
             }
 
             return folioGenerado;
+        }
+
+
+        /// <summary>
+        /// Recupera el historial de órdenes de servicio combinando la información
+        /// del cliente y del vehículo.
+        /// </summary>
+        /// <returns>Una colección de objetos <see cref="OrdenResumenDTO"/> ordenados por folio descendente.</returns>
+        public List<OrdenResumenDTO> ObtenerHistorialOrdenes()
+        {
+            var lista = new List<OrdenResumenDTO>();
+
+            using (var conexion = new SqlConnection(_cadenaConexion))
+            {
+                string query = @"
+                    SELECT 
+                        o.folioOrden, 
+                        o.fechaIngreso, 
+                        (c.nombre + ' ' + c.apellidoPaterno + ISNULL(' ' + c.apellidoMaterno, '')) AS NombreCliente,
+                        (v.marca + ' ' + v.modelo + ' (' + v.placas + ')') AS InfoVehiculo,
+                        o.estado, 
+                        o.costoTotal
+                    FROM ordenesServicio o
+                    INNER JOIN vehiculos v ON o.idVehiculo = v.idVehiculo
+                    INNER JOIN clientes c ON v.idCliente = c.idCliente
+                    ORDER BY o.folioOrden DESC";
+
+                using (var cmd = new SqlCommand(query, conexion))
+                {
+                    cmd.CommandType = CommandType.Text;
+                    conexion.Open();
+
+                    using (var dr = cmd.ExecuteReader())
+                    {
+                        while (dr.Read())
+                        {
+                            lista.Add(new OrdenResumenDTO
+                            {
+                                Folio = dr.GetInt32(dr.GetOrdinal("folioOrden")),
+                                Fecha = dr.GetDateTime(dr.GetOrdinal("fechaIngreso")),
+                                NombreCliente = dr.GetString(dr.GetOrdinal("NombreCliente")),
+                                InfoVehiculo = dr.GetString(dr.GetOrdinal("InfoVehiculo")),
+                                Estado = dr.GetString(dr.GetOrdinal("estado")),
+                                Total = dr.GetDecimal(dr.GetOrdinal("costoTotal"))
+                            });
+                        }
+                    }
+                }
+            }
+            return lista;
+        }
+
+
+        /// <summary>
+        /// Recupera los servicios específicos asociados a un número de folio de orden.
+        /// </summary>
+        /// <param name="folio">El identificador único de la orden.</param>
+        /// <returns>Colección de detalles con el nombre y precio congelado al momento de la venta.</returns>
+        public List<DetalleResumenDTO> ObtenerDetallesPorFolio(int folio)
+        {
+            var lista = new List<DetalleResumenDTO>();
+
+            using (var conexion = new SqlConnection(_cadenaConexion))
+            {
+                string query = @"
+                    SELECT s.nombreServicio, ods.precioAlMomento 
+                    FROM ordenDetallesServicios ods
+                    INNER JOIN servicios s ON ods.claveServicio = s.claveServicio
+                    WHERE ods.folioOrden = @folio";
+
+                using (var cmd = new SqlCommand(query, conexion))
+                {
+                    cmd.CommandType = CommandType.Text;
+                    cmd.Parameters.AddWithValue("@folio", folio);
+                    conexion.Open();
+
+                    using (var dr = cmd.ExecuteReader())
+                    {
+                        while (dr.Read())
+                        {
+                            lista.Add(new DetalleResumenDTO
+                            {
+                                NombreServicio = dr.GetString(dr.GetOrdinal("nombreServicio")),
+                                PrecioCobrado = dr.GetDecimal(dr.GetOrdinal("precioAlMomento"))
+                            });
+                        }
+                    }
+                }
+            }
+            return lista;
         }
     }
 }

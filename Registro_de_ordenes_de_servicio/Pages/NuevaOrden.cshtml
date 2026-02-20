@@ -34,7 +34,15 @@
         </div>
     </div>
 
+    <div class="row mb-4 justify-content-end">
+        <div class="col-md-4">
+            <label class="form-label fw-bold" for="txtFechaEstimada">Fecha Estimada de Entrega (Opcional):</label>
+            <input type="date" id="txtFechaEstimada" class="form-control border-success" />
+        </div>
+    </div>
+
     <div class="card mb-4 border-success">
+        
         <div class="card-header bg-success text-white">
             Agregar Servicios
         </div>
@@ -242,10 +250,16 @@
                 const textoTotal = document.getElementById("lblTotal").innerText.replace('$', '');
                 const totalOrden = parseFloat(textoTotal);
 
+                // Fecha estimada
+                const inputFecha = document.getElementById("txtFechaEstimada").value;
+                // Manejo de NULL
+                const fechaEstimada = inputFecha ? inputFecha : null;
+
                 // Estructura el objeto JSON (DTO)
                 const ordenData = {
                     IdVehiculo: parseInt(selectVehiculo.value),
                     CostoTotal: totalOrden,
+                    FechaEstimadaEntrega: fechaEstimada,
                     Detalles: listaDetalles.map(item => ({
                         ClaveServicio: item.clave,
                         PrecioAlMomento: item.precioUnitario
@@ -285,6 +299,23 @@
                     btnGuardar.innerText = "💾 GUARDAR ORDEN";
                 });
             }
+
+            /**
+             * Aplica el límite mínimo al calendario de entrega
+             */
+            document.addEventListener('DOMContentLoaded', function() {
+                const inputFecha = document.getElementById("txtFechaEstimada");
+
+                const fechaActual = new Date();
+
+                // Compensa el desfase horario respecto a UTC
+                const compensacionHoraria = fechaActual.getTimezoneOffset() * 60000;
+                const fechaLocal = new Date(fechaActual.getTime() - compensacionHoraria);
+
+                // Extrae la cadena y se asigna al atributo de HTML
+                const fechaMinimaISO = fechaLocal.toISOString().split('T')[0];
+                inputFecha.setAttribute('min', fechaMinimaISO);
+            });
 
         </script>
     }
