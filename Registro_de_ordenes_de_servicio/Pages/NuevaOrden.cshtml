@@ -8,7 +8,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="fw-bold">REGISTRO DE SERVICIO</h2>
         <div class="text-end text-muted">
-            <h5>FOLIO: <span class="badge bg-secondary">AUTO</span></h5>
+            <h5>FOLIO: <span class="badge bg-secondary text-white">@Model.FolioEstimado.ToString("D4")</span></h5>
             <h6>FECHA: @DateTime.Now.ToString("dd/MM/yyyy")</h6>
         </div>
     </div>
@@ -88,7 +88,205 @@
                 </li>
             </ul>
             <br />
-            <button class="btn btn-verde w-100 btn-lg">💾 GUARDAR ORDEN</button>
+            <button id="btnGuardar" class="btn btn-verde w-100 btn-lg" onclick="guardarOrden()">💾 GUARDAR ORDEN</button>
+
+            @Html.AntiForgeryToken()
         </div>
     </div>
+
+    @section Scripts {
+        <script>
+            /// <summary>
+            /// Consume el endpoint de Razor Pages para obtener vehículos y actualiza el DOM.
+            /// </summary>
+            function cargarVehiculos() {
+                const selectCliente = document.getElementById("selectCliente");
+                const selectVehiculo = document.getElementById("selectVehiculo");
+                const idCliente = selectCliente.value;
+
+                // Limpia el combo de vehículos y deshabilita mientras carga
+                selectVehiculo.innerHTML = '<option selected disabled>Cargando vehículos...</option>';
+                selectVehiculo.disabled = true;
+
+                // Petición Fetch al backend de Razor Pages
+                fetch(`?handler=Vehiculos&idCliente=${idCliente}`)
+                    .then(response => {
+                        if (!response.ok) throw new Error("Error en la red");
+                        return response.json();
+                    })
+                    .then(data => {
+                        selectVehiculo.innerHTML = '<option selected disabled>-- Seleccione Vehículo --</option>';
+
+                        // Itera el JSON y construye las opciones HTML
+                        data.forEach(vehiculo => {
+                            const option = document.createElement("option");
+                            option.value = vehiculo.idVehiculo;
+                            option.text = `${vehiculo.placas} - ${vehiculo.marca} ${vehiculo.modelo}`;
+                            selectVehiculo.appendChild(option);
+                        });
+
+                        // Habilita el selector si encuentra vehículos
+                        if(data.length > 0){
+                            selectVehiculo.disabled = false;
+                        } else {
+                            selectVehiculo.innerHTML = '<option selected disabled>El cliente no tiene vehículos</option>';
+                        }
+                    })
+                    .catch(error => console.error("Error al cargar vehículos:", error));
+            }
+
+
+
+            let listaDetalles = [];
+
+            function agregarServicio() {
+                const select = document.getElementById("selectServicio");
+
+                // Valida que se haya seleccionado una opción válida
+                if (select.selectedIndex === 0) {
+                    alert("Por favor, seleccione un servicio del catálogo.");
+                    return;
+                }
+
+                const opcionSeleccionada = select.options[select.selectedIndex];
+                const clave = opcionSeleccionada.getAttribute("data-clave");
+                const descripcion = opcionSeleccionada.text.split('-')[0].trim();
+                const precio = parseFloat(opcionSeleccionada.value);
+                const cantidad = 1;
+
+                // Evita agregar servicios duplicados a la orden
+                const existe = listaDetalles.find(item => item.clave === clave);
+                if (existe) {
+                    alert("Este servicio ya fue agregado a la orden.");
+                    return;
+                }
+
+                const detalle = {
+                    clave: clave,
+                    descripcion: descripcion,
+                    cantidad: cantidad,
+                    precioUnitario: precio,
+                    importe: precio * cantidad
+                };
+
+                listaDetalles.push(detalle);
+                select.selectedIndex = 0;
+
+                actualizarTablaYTotales();
+            }
+
+            function eliminarDetalle(clave) {
+                listaDetalles = listaDetalles.filter(item => item.clave !== clave);
+                actualizarTablaYTotales();
+            }
+
+            function actualizarTablaYTotales() {
+                const tbody = document.getElementById("tablaDetalles");
+                tbody.innerHTML = "";
+
+                let subtotal = 0;
+
+                listaDetalles.forEach(item => {
+                    subtotal += item.importe;
+
+                    // Construye la fila HTML para el servicio
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td class="text-start">${item.descripcion}</td>
+                        <td>${item.cantidad}</td>
+                        <td>$${item.precioUnitario.toFixed(2)}</td>
+                        <td class="fw-bold">$${item.importe.toFixed(2)}</td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-danger" onclick="eliminarDetalle('${item.clave}')">
+                                <i class="fa-solid fa-trash"></i> Quitar
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                // Calcula impuestos y totales
+                const iva = subtotal * 0.16;
+                const total = subtotal + iva;
+
+                document.getElementById("lblSubtotal").innerText = `$${subtotal.toFixed(2)}`;
+                document.getElementById("lblIVA").innerText = `$${iva.toFixed(2)}`;
+                document.getElementById("lblTotal").innerText = `$${total.toFixed(2)}`;
+            }
+
+
+
+            /**
+             * Recopila los datos del formulario y el estado en memoria, y los envía
+             * de forma asíncrona al backend para procesar la transacción de inserción.
+             */
+            function guardarOrden() {
+                const selectVehiculo = document.getElementById("selectVehiculo");
+
+                // Valida que exista un vehículo seleccionado y al menos un servicio en la tabla
+                if (selectVehiculo.selectedIndex <= 0) {
+                    alert("Debe seleccionar un vehículo.");
+                    return;
+                }
+                if (listaDetalles.length === 0) {
+                    alert("La orden debe contener al menos un servicio.");
+                    return;
+                }
+
+                // Deshabilita el botón mientras procesa
+                const btnGuardar = document.getElementById("btnGuardar");
+                btnGuardar.disabled = true;
+                btnGuardar.innerText = "Guardando...";
+
+                // Extrae el texto del total y elimina el símbolo $
+                const textoTotal = document.getElementById("lblTotal").innerText.replace('$', '');
+                const totalOrden = parseFloat(textoTotal);
+
+                // Estructura el objeto JSON (DTO)
+                const ordenData = {
+                    IdVehiculo: parseInt(selectVehiculo.value),
+                    CostoTotal: totalOrden,
+                    Detalles: listaDetalles.map(item => ({
+                        ClaveServicio: item.clave,
+                        PrecioAlMomento: item.precioUnitario
+                    }))
+                };
+
+                // Recupera el token inyectado por Razor Pages
+                const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+                // Inicia la petición HTTP POST hacia el manejador Guardar
+                fetch('?handler=Guardar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token
+                    },
+                    body: JSON.stringify(ordenData)
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error("Error en el servidor");
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.exito) {
+                        alert("Orden guardada correctamente con el Folio: " + data.folio);
+                        window.location.href = "/Index"; // Redirige al inicio
+                    } else {
+                        alert("Error al guardar: " + data.mensaje);
+                        btnGuardar.disabled = false;
+                        btnGuardar.innerText = "💾 GUARDAR ORDEN";
+                    }
+                })
+                .catch(error => {
+                    console.error("Excepción durante la petición:", error);
+                    alert("Ocurrió un error al intentar comunicar con el servidor.");
+                    btnGuardar.disabled = false;
+                    btnGuardar.innerText = "💾 GUARDAR ORDEN";
+                });
+            }
+
+        </script>
+    }
+
 </div>
